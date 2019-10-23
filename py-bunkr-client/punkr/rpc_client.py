@@ -89,9 +89,9 @@ class RpcTcpClient(object):
 
 if __name__ == "__main__":
     bunkr_address = "/tmp/bunkr_daemon.sock"
-    create = str(JsonProtocol("1.0", "CommandProxy.HandleCommand", {"Line": "new-text-secret foo foocontent"}))
-    access = str(JsonProtocol("1.0", "CommandProxy.HandleCommand", {"Line": "access foo"}))
-    delete = str(JsonProtocol("1.0", "CommandProxy.HandleCommand", {"Line": "delete foo"}))
+    create = str(JsonProtocol("1.0", "CommandProxy.HandleCommand", {"Command": "new-text-secret", "Args" : ["foo_test", "foo content"]}))
+    access = str(JsonProtocol("1.0", "CommandProxy.HandleCommand", {"Command": "access", "Args" : ["foo_test"]}))
+    delete = str(JsonProtocol("1.0", "CommandProxy.HandleCommand", {"Command": "delete", "Args" : ["foo_test"]}))
 
     with RpcTcpClient(bunkr_address) as client:
         print(client.send(create))
