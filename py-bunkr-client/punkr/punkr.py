@@ -34,6 +34,13 @@ class Command(enum.Enum):
     SIGNIN = "sigin"
     CONFIRM_SIGNIN = "confirm-signin"
 
+class SecretType(enum.Enum):
+    ECDSASECP256k1Key = "ECDSA-SECP256k1"
+    ECDSAP256Key = "ECDSA-P256"
+    HMACKey = "HMAC"
+    GenericGF256 = "GENERIC-GF256"
+    GenericPF = "GENERIC-PF"
+
 class PunkrException(BaseException):
     pass
 
@@ -84,7 +91,7 @@ class Punkr(object):
         if operation_error != "":
             raise PunkrException(operation_error)
         # result is wrapped by the jsonrpc protocol (result) and the Result go object (Result)
-        result = data["result"]
+        result = data["result"]["Result"]
         return result
 
 
@@ -233,7 +240,9 @@ class Punkr(object):
         }
         """
         with self.__client as client:
-            return self.__exec_cmd(client, Command.SEND_DEVICE, *[] if device_name is None else device_name)
+            if device_name is not None:
+                return self.__exec_cmd(client, Command.SEND_DEVICE, device_name)
+            return self.__exec_cmd(client, Command.SEND_DEVICE)
 
     def receive_device(self, url):
         """
@@ -284,14 +293,14 @@ class Punkr(object):
         """
         write, overwrite a secret content
         :param secret_name: name of the secret to overwrite
-        :param content: new secret content
+        :param secret_type: secret type one of SecretType enum
         :return: json like object (dict)
         {
             "msg" : "<feedback message>",
         }
         """
         with self.__client as client:
-            return self.__exec_cmd(client, Command.CREATE, secret_name, secret_type)
+            return self.__exec_cmd(client, Command.CREATE, secret_name, secret_type.value)
 
     def write(self, secret_name, content, content_type="b64"):
         """
@@ -339,7 +348,9 @@ class Punkr(object):
         }
         """
         with self.__client as client:
-            return self.__exec_cmd(client, Command.GRANT, target, secret_name, *[] if not admin else "admin")
+            if admin:
+                return self.__exec_cmd(client, Command.GRANT, target, secret_name, "admin")
+            return self.__exec_cmd(client, Command.GRANT, target, secret_name)
 
     def revoke(self, target, secret_name):
         """
@@ -352,7 +363,7 @@ class Punkr(object):
         }
         """
         with self.__client as client:
-            return self.__exec_cmd(client, Command.GRANT, target, secret_name)
+            return self.__exec_cmd(client, Command.REVOKE, target, secret_name)
 
     def delete(self, secret_name):
         """
@@ -443,7 +454,7 @@ class Punkr(object):
         }
         """
         with self.__client as client:
-            return self.__exec_cmd(client, Command.SECRET_INFO, secret_name)
+            return self.__exec_cmd(client, Command.SSH_PUBLIC_DATA, secret_name)
 
     def sigin(self, email, device_name):
         """
@@ -474,7 +485,7 @@ class Punkr(object):
     def batch_commands(self, *args):
         """
         batch_commands receives a variable number of arguments of the type:
-        `(operation_name, [<args list>])`
+        `(Command, [<args list>])`
         where `operation_name` is the name of a command registered in the `Command` enum,
         and the second tuple element is a list with the operation arguments`
         :yields: ordered command results
@@ -598,7 +609,9 @@ class Punkr(object):
         }
         """
         async with self.__client as client:
-            return await self.__async_exec_cmd(client, Command.SEND_DEVICE, *[] if device_name is None else device_name)
+            if device_name is not None:
+                return await self.__async_exec_cmd(client, Command.SEND_DEVICE, device_name)
+            return await self.__async_exec_cmd(client, Command.SEND_DEVICE)
 
     async def asyn_receive_device(self, url):
         """
@@ -649,14 +662,14 @@ class Punkr(object):
         """
         async_create, overwrite a secret content
         :param secret_name: name of the secret to overwrite
-        :param content: new secret content
+        :param secret_type: secret type one of SecretType enum
         :return: json like object (dict)
         {
             "msg" : "<feedback message>",
         }
         """
         async with self.__client as client:
-            return await self.__async_exec_cmd(client, Command.CREATE, secret_name, secret_type)
+            return await self.__async_exec_cmd(client, Command.CREATE, secret_name, secret_type.value)
 
     async def async_write(self, secret_name, content, content_type="b64"):
         """
@@ -704,7 +717,9 @@ class Punkr(object):
         }
         """
         async with self.__client as client:
-            return await self.__async_exec_cmd(client, Command.GRANT, target, secret_name, *[] if not admin else "admin")
+            if admin:
+                return await self.__async_exec_cmd(client, Command.GRANT, target, secret_name, *[] if not admin else "admin")
+            return await self.__async_exec_cmd(client, Command.GRANT, target, secret_name)
 
     async def async_revoke(self, target, secret_name):
         """
@@ -717,7 +732,7 @@ class Punkr(object):
         }
         """
         async with self.__client as client:
-            return await self.__async_exec_cmd(client, Command.GRANT, target, secret_name)
+            return await self.__async_exec_cmd(client, Command.REVOKE, target, secret_name)
 
     async def async_delete(self, secret_name):
         """
@@ -808,7 +823,7 @@ class Punkr(object):
         }
         """
         async with self.__client as client:
-            return await self.__async_exec_cmd(client, Command.SECRET_INFO, secret_name)
+            return await self.__async_exec_cmd(client, Command.SSH_PUBLIC_DATA, secret_name)
 
     async def async_sigin(self, email, device_name):
         """
@@ -839,7 +854,7 @@ class Punkr(object):
     async def async_batch_commands(self, *args):
         """
         async_batch_commands receives a variable number of arguments of the type:
-        `(operation_name, [<args list>])`
+        `(Command, [<args list>])`
         where `operation_name` is the name of a command registered in the `Command` enum,
         and the second tuple element is a list with the operation arguments`
         :yields: unordered command results
@@ -855,7 +870,7 @@ class Punkr(object):
     async def async_ordered_batch_commands(self, *args):
         """
         async_batch_commands receives a variable number of arguments of the type:
-        `(operation_name, [<args list>])`
+        `(Command, [<args list>])`
         where `operation_name` is the name of a command registered in the `Command` enum,
         and the second tuple element is a list with the operation arguments`
         :returns: ordered command results
@@ -871,13 +886,15 @@ if __name__ == "__main__":
     import asyncio
     # create a connection to the local Bunkr RPC server
     punkr = Punkr("/tmp/bunkr_daemon.sock")
+    to_delete = []
     try:
         # create a new text secret (synchronously)
         print(punkr.new_text_secret("MySuperSecret", 'secret created from punkr'))
+        to_delete.append("MySuperSecret")
         commands = (
-            ("access", ["MySuperSecret"]), # This is the structure of a batch command argument
-            ("access", ["MySuperSecret"]),
-            ("access", ["MySuperSecret"]),
+            (Command.ACCESS, ["MySuperSecret"]), # This is the structure of a batch command argument
+            (Command.ACCESS, ["MySuperSecret"]),
+            (Command.ACCESS, ["MySuperSecret"]),
         )
         # create corutine to access the secret (asynchronously, order of results is not guaranteed)
         async def async_test():
@@ -892,9 +909,72 @@ if __name__ == "__main__":
         results2 = list(punkr.batch_commands(*commands))
         print(results2)
         assert results1 == results2
+
+        # create group
+        punkr.new_group("the_group")
+        to_delete.append("the_group")
+        # create ssh key
+        punkr.new_ssh_key("test_key")
+        to_delete.append("test_key")
+        # listing
+        res = punkr.list_secrets()
+        assert len(res["content"]["secrets"]) > 0
+        res = punkr.list_devices()
+        assert len(res["devices"]) > 0
+        res = punkr.list_groups()
+        assert len(res["groups"]) > 0
+
+        # rename
+        punkr.rename("the_group", "useless_group")
+        punkr.rename("useless_group", "the_group")
+
+        # create, write, access cycle
+        content = "some useless content"
+        punkr.create("useless_secret", SecretType.GenericGF256)
+        punkr.write("useless_secret", content, "text")
+        to_delete.append("useless_secret")
+
+        res = punkr.access("useless_secret")
+        assert res["content"] ==  content
+        assert res["mode"] == "text"
+
+        # granting
+        punkr.grant("the_group", "useless_secret")
+        # revoke
+        punkr.revoke("the_group", "useless_secret")
+
+        # reset triples
+        punkr.reset_triples("useless_secret")
+        # noop
+        punkr.noop("useless_secret")
+        # secret info
+        res = punkr.secret_info("useless_secret")
+        print(res["msg"])
+
+        # ecdsa signature
+        res = punkr.sign_ecdsa("test_key", "Zm9v")
+        print(res["r"])
+        print(res["s"])
+
+        # ssh public data
+        res = punkr.ssh_public_data("test_key")
+        print(res["public_data"]["public_key"])
+
+        # send device
+        res = punkr.send_device("my_device")
+        print(res["url_short"])
+        print(res["url_raw"])
+
     except PunkrException as e:
+        print("Error while performing a Bunkr operation:")
+        print(e)
+    except Exception as e:
         print(e)
     finally:
         # delete the secret (synchronously)
-        punkr.delete("MySuperSecret")
 
+        for s in to_delete:
+            try:
+                punkr.delete(s)
+            except PunkrException as e:
+                print(f"Error deleting secret {s}: {e}")

@@ -59,14 +59,14 @@ class RpcTcpClient(object):
         if not self.__connected:
             raise ConnectionError("Client is not connected to any TCP server.")
         self.socket.sendall(message.encode())
-        data = self.socket.recv(1024)
+        data = self.socket.recv(2048)
         return json.loads(data.decode())
 
     async def async_send(self, message):
         if not self.__connected or not self.writer or not self.reader:
             raise ConnectionError("Client is not connected to any TCP server.")
         self.writer.write(message.encode())
-        data = await self.reader.read(1024)
+        data = await self.reader.read(2048)
         return json.loads(data.decode())
 
     def __enter__(self):

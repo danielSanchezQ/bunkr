@@ -48,13 +48,15 @@ if __name__ == "__main__":
     import asyncio
     # create a connection to the local Bunkr RPC server
     punkr = Punkr("/tmp/bunkr_daemon.sock")
+    to_delete = []
     try:
         # create a new text secret (synchronously)
         print(punkr.new_text_secret("MySuperSecret", 'secret created from punkr'))
+        to_delete.append("MySuperSecret")
         commands = (
-            ("access", ["MySuperSecret"]), # This is the structure of a batch command argument
-            ("access", ["MySuperSecret"]),
-            ("access", ["MySuperSecret"]),
+            (Command.ACCESS, ["MySuperSecret"]), # This is the structure of a batch command argument
+            (Command.ACCESS, ["MySuperSecret"]),
+            (Command.ACCESS, ["MySuperSecret"]),
         )
         # create corutine to access the secret (asynchronously, order of results is not guaranteed)
         async def async_test():
@@ -69,11 +71,75 @@ if __name__ == "__main__":
         results2 = list(punkr.batch_commands(*commands))
         print(results2)
         assert results1 == results2
+
+        # create group
+        punkr.new_group("the_group")
+        to_delete.append("the_group")
+        # create ssh key
+        punkr.new_ssh_key("test_key")
+        to_delete.append("test_key")
+        # listing
+        res = punkr.list_secrets()
+        assert len(res["content"]["secrets"]) > 0
+        res = punkr.list_devices()
+        assert len(res["devices"]) > 0
+        res = punkr.list_groups()
+        assert len(res["groups"]) > 0
+
+        # rename
+        punkr.rename("the_group", "useless_group")
+        punkr.rename("useless_group", "the_group")
+
+        # create, write, access cycle
+        content = "some useless content"
+        punkr.create("useless_secret", SecretType.GenericGF256)
+        punkr.write("useless_secret", content, "text")
+        to_delete.append("useless_secret")
+
+        res = punkr.access("useless_secret")
+        assert res["content"] ==  content
+        assert res["mode"] == "text"
+
+        # granting
+        punkr.grant("the_group", "useless_secret")
+        # revoke
+        punkr.revoke("the_group", "useless_secret")
+
+        # reset triples
+        punkr.reset_triples("useless_secret")
+        # noop
+        punkr.noop("useless_secret")
+        # secret info
+        res = punkr.secret_info("useless_secret")
+        print(res["msg"])
+
+        # ecdsa signature
+        res = punkr.sign_ecdsa("test_key", "Zm9v")
+        print(res["r"])
+        print(res["s"])
+
+        # ssh public data
+        res = punkr.ssh_public_data("test_key")
+        print(res["public_data"]["public_key"])
+
+        # send device
+        res = punkr.send_device("my_device")
+        print(res["url_short"])
+        print(res["url_raw"])
+
     except PunkrException as e:
+        print("Error while performing a Bunkr operation:")
+        print(e)
+    except Exception as e:
         print(e)
     finally:
         # delete the secret (synchronously)
-        punkr.delete("MySuperSecret")
+
+        for s in to_delete:
+            try:
+                punkr.delete(s)
+            except PunkrException as e:
+                print(f"Error deleting secret {s}: {e}")
 ```
 
 

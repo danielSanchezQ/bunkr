@@ -48,6 +48,16 @@ const (
 	CONFIRM_SIGNIN                 = "confirm-signin"
 )
 
+type SecretType string
+
+const (
+	ECDSASECP256k1Key SecretType = "ECDSA-SECP256k1"
+	ECDSAP256Key                 = "ECDSA-P256"
+	HMACKey                      = "HMAC"
+	GenericGF256                 = "GENERIC-GF256"
+	GenericPF                    = "GENERIC-PF"
+)
+
 // OperationResult is a wrapper over an arbitrary json object. Operations result a json like object with diverse content.
 // It will be a map object that would look like:
 // {
