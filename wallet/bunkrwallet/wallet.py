@@ -110,15 +110,13 @@ class Wallet(object):
 		pubkey_list = [acct["pubkey_hex"] for acct in acct_list]
 		sec_name_list = [acct["secret_name"] for acct in acct_list]
 		hash_list = [str(base64.b64encode(i), 'utf-8') for i in prepare_signatures(tx, pubkey_list)]
-		commands = [
-			("sign-ecdsa", {"secret_name": secret_name, "hash_content": _hash}) for secret_name, _hash in zip(sec_name_list, hash_list)
-		]
-		stdout = list(x.strip().split() for x in self.punkr.batch_commands(*commands))
+		commands = [(Command.SIGN_ECDSA, (secret_name, _hash)) for secret_name, _hash in zip(sec_name_list, hash_list)]
+		stdout = self.punkr.batch_commands(*commands)
 		sigs = []
 		try:
-			for r, s in stdout:
-				r = int(base64.b64decode(r))
-				s = int(base64.b64decode(s))
+			for out in stdout:
+				r = int(base64.b64decode(out['r']))
+				s = int(base64.b64decode(out['s']))
 				if s > N//2:
 					s = N - s
 				sigs.append((r, s))
@@ -280,17 +278,17 @@ def write_private_key_to_bunkr(punkr, private_key, address, wallet_name):
 	"""
 	content = str(base64.b64encode(private_key.to_bytes(ceil(private_key.bit_length() / 8), 'big')), 'utf-8')
 	try:
-		resp = punkr.create(address, "ECDSA-SECP256k1")
+		resp = punkr.create(address, SecretType.ECDSASECP256k1Key)
 	except PunkrException as e:
 		print(f"Bunkr Operation CREATE failed with: {e}")
 	try:
 		resp = punkr.write(address, content)
 	except PunkrException as e:
-		print(f"Bunkr Operation CREATE failed with: {e}")
+		print(f"Bunkr Operation WRITE failed with: {e}")
 	try:
 		resp = punkr.grant(wallet_name, address)
 	except PunkrException as e:
-		print(f"Bunkr Operation CREATE failed with: {e}")
+		print(f"Bunkr Operation GRANT failed with: {e}")
 
 
 

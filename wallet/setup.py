@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name='bunkrwallet',
-    version='0.1.2',
+    version='0.1.3',
     author="off-the-grid-inc",
     author_email="accounts@off-the-grid.io",
     description="Lite bitcoin bunkrwallet working on top of Bunkr secrets",
