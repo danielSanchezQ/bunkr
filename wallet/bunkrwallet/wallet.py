@@ -1,5 +1,5 @@
 import os, json, time
-from bunkrwallet.btc import *
+from .btc import *
 from math import ceil
 from random import shuffle
 
@@ -82,7 +82,7 @@ class Wallet(object):
 		"""
 		self.punkr = Punkr(bunkr_address)
 		if not os.path.exists(wallet_filepath):
-			print("Creating new bunkrwallet...")
+			print("Creating new bunkr-wallet...")
 			new_wallet(self.punkr, wallet_name, wallet_filepath, testnet)
 		with open(wallet_filepath, 'r') as f:
 			wallet_file = json.load(f)
@@ -148,25 +148,27 @@ class Wallet(object):
 		for acct in self.wallet:
 			utxos = get_unspent(acct["address"], self.testnet)
 			balance += sum(i['value'] for i in utxos)
-		print(f"{self.name} current balance: {str(balance/100000000.0)} BTC")
+		return f"{self.name} current balance: {str(balance/100000000.0)} BTC"
 
 	def show_address_balances(self):
 		"""
 		prints balance of each individual (non-zero) address
 		:return: None
 		"""
+		ret = []
 		for acct in self.wallet:
 			utxos = get_unspent(acct["address"], self.testnet)
 			if len(utxos) != 0:
 				balance = sum(i['value'] for i in utxos)
-				print(f"Address {acct['address']} BTC: {str(balance/100000000.0)}")
+				ret.append(f"Address {acct['address']} BTC: {str(balance/100000000.0)}")
+		return ret
 
 	def show_fresh_address(self):
 		"""
 		prints the next unused bitcoin address
 		:return: None
 		"""
-		print(self.__fresh_account()["address"])
+		return self.__fresh_account()["address"]
 
 	def delete(self, account):
 		"""
@@ -178,7 +180,7 @@ class Wallet(object):
 			resp = self.punkr.delete(account["secret_name"])
 		except PunkrException as e:
 			print(f"Bunkr Operation NEW-GROUP failed with: {e}")
-		self.wallet = [i for i in self.wallet if i!=acct]
+		self.wallet = [i for i in self.wallet if i!=account]
 		output = [self.header, *self.wallet]
 		with open(self.filepath, 'w+') as f:
 			json.dump(output, f)
@@ -194,11 +196,11 @@ class Wallet(object):
 		for acct in self.wallet:
 			if acct["address"] == address:
 				return acct
-		raise ValueError("The given address does not exist in the bunkrwallet")
+		raise ValueError("The given address does not exist in the bunkr-wallet")
 
 	def __fresh_account(self):
 		"""
-		Randomly selects an unused bunkrwallet account
+		Randomly selects an unused bunkr-wallet account
 		:return: account
 		:raise: ValueError
 		"""
